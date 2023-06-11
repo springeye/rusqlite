@@ -352,7 +352,7 @@ impl<'stmt> Row<'stmt> {
     pub fn column_names(&self) -> Vec<&str> {
         self.stmt.column_names()
     }
-    pub fn columns(&self) -> Vec<Column<'stmt>> {
+    pub fn columns(&self) -> Vec<Column> {
         self.stmt.columns()
     }
 }
