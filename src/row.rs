@@ -346,6 +346,12 @@ impl<'stmt> Row<'stmt> {
     pub fn column_count(&self) -> usize {
         self.stmt.column_count()
     }
+    pub fn column_index(&self,name: &str) -> Result<usize> {
+        self.stmt.column_index(name)
+    }
+    pub fn column_names(&self) -> Vec<&str> {
+        self.stmt.column_names()
+    }
     pub fn columns(&self) -> Vec<Column<'stmt>> {
         self.stmt.columns()
     }
