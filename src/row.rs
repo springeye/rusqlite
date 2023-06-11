@@ -1,6 +1,7 @@
 use fallible_iterator::FallibleIterator;
 use fallible_streaming_iterator::FallibleStreamingIterator;
 use std::convert;
+use crate::Column;
 
 use super::{Error, Result, Statement};
 use crate::types::{FromSql, FromSqlError, ValueRef};
@@ -340,6 +341,13 @@ impl<'stmt> Row<'stmt> {
     #[track_caller]
     pub fn get_ref_unwrap<I: RowIndex>(&self, idx: I) -> ValueRef<'_> {
         self.get_ref(idx).unwrap()
+    }
+    /// Get column count
+    pub fn column_count(&self) -> usize {
+        self.stmt.column_count()
+    }
+    pub fn columns(&self) -> Vec<Column<'stmt>> {
+        self.stmt.columns()
     }
 }
 
