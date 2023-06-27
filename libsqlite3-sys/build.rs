@@ -105,8 +105,6 @@ mod build_bundled {
             fs::copy(format!("{lib_name}/bindgen_bundled_version.rs"), out_path)
                 .expect("Could not copy bindings to output directory");
         }
-        // println!("cargo:rerun-if-changed=sqlite3/sqlite3.c");
-        // println!("cargo:rerun-if-changed=sqlcipher/sqlite3.c");
         println!("cargo:rerun-if-changed={lib_name}/sqlite3.c");
         println!("cargo:rerun-if-changed=sqlite3/wasm32-wasi-vfs.c");
         let mut cfg = cc::Build::new();
@@ -489,8 +487,7 @@ mod bindings {
     use super::HeaderLocation;
     use bindgen::callbacks::{IntKind, ParseCallbacks};
 
-    use std::fs::OpenOptions;
-    use std::io::Write;
+    use std::fs;
     use std::path::Path;
 
     use super::win_target;
@@ -499,23 +496,15 @@ mod bindings {
     struct SqliteTypeChooser;
 
     impl ParseCallbacks for SqliteTypeChooser {
-        fn int_macro(&self, name: &str, value: i64) -> Option<IntKind> {
+        fn int_macro(&self, name: &str, _value: i64) -> Option<IntKind> {
             if name == "SQLITE_SERIALIZE_NOCOPY"
                 || name.starts_with("SQLITE_DESERIALIZE_")
                 || name.starts_with("SQLITE_PREPARE_")
             {
                 Some(IntKind::UInt)
-            } else if value >= i32::MIN as i64 && value <= i32::MAX as i64 {
-                Some(IntKind::I32)
             } else {
                 None
             }
-        }
-
-        fn item_name(&self, original_item_name: &str) -> Option<String> {
-            original_item_name
-                .strip_prefix("sqlite3_index_info_")
-                .map(|s| s.to_owned())
         }
     }
 
@@ -535,6 +524,8 @@ mod bindings {
         let header: String = header.into();
         let mut output = Vec::new();
         let mut bindings = bindgen::builder()
+            .default_macro_constant_type(bindgen::MacroTypeVariation::Signed)
+            .disable_nested_struct_naming()
             .trust_clang_mangling(false)
             .header(header.clone())
             .parse_callbacks(Box::new(SqliteTypeChooser))
@@ -633,10 +624,7 @@ mod bindings {
                 .blocklist_function("sqlite3_vsnprintf")
                 .blocklist_function("sqlite3_str_vappendf")
                 .blocklist_type("va_list")
-                .blocklist_type("__builtin_va_list")
-                .blocklist_type("__gnuc_va_list")
-                .blocklist_type("__va_list_tag")
-                .blocklist_item("__GNUC_VA_LIST");
+                .blocklist_item("__.*");
         }
 
         bindings
@@ -657,14 +645,7 @@ mod bindings {
             output.push_str("\npub const SQLITE_DETERMINISTIC: i32 = 2048;\n");
         }
 
-        let mut file = OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .create(true)
-            .open(out_path)
-            .unwrap_or_else(|_| panic!("Could not write to {:?}", out_path));
-
-        file.write_all(output.as_bytes())
+        fs::write(out_path, output.as_bytes())
             .unwrap_or_else(|_| panic!("Could not write to {:?}", out_path));
     }
 }
